@@ -88,7 +88,4 @@ enum wlf_result
 wlf_seat_set_idle_time(struct wlf_seat *seat, int64_t time);
 
 enum wlf_result
-wlf_seat_inhibit_shortcuts(struct wlf_seat *seat, struct wlf_surface *surface);
-
-enum wlf_result
-wlf_seat_restore_shortcuts(struct wlf_seat *seat, struct wlf_surface *surface);
+wlf_seat_inhibit_shortcuts(struct wlf_seat *seat, struct wlf_surface *surface, bool inhibit);

@@ -1630,13 +1630,21 @@ wlf_seat_release(struct wlf_seat *seat)
 }
 
 enum wlf_result
-wlf_seat_inhibit_shortcuts(struct wlf_seat *seat, struct wlf_surface *surface)
+wlf_seat_inhibit_shortcuts(struct wlf_seat *seat, struct wlf_surface *surface, bool inhibit)
 {
     if (!seat->wl_seat) {
         return WLF_ERROR_LOST;
     }
 
     struct wlf_shortcuts_inhibitor *inhibitor = wlf_seat_find_shortcuts_inhibitor(seat, surface);
+    if (!inhibit) {
+        if (!inhibitor) {
+            return WLF_SKIPPED;
+        }
+        wlf_shortcut_inhibitor_destroy(inhibitor);
+        return WLF_SUCCESS;
+    }
+
     if (inhibitor) {
         return WLF_ALREADY_SET;
     }
@@ -1668,20 +1676,6 @@ wlf_seat_inhibit_shortcuts(struct wlf_seat *seat, struct wlf_surface *surface)
         inhibitor);
 
     wl_list_insert(&seat->shortcut_inhibitors, &inhibitor->link);
-    return WLF_SUCCESS;
-}
-
-enum wlf_result
-wlf_seat_restore_shortcuts(struct wlf_seat *seat, struct wlf_surface *surface)
-{
-    if (!seat->wl_seat) {
-        return WLF_ERROR_LOST;
-    }
-    struct wlf_shortcuts_inhibitor *inhibitor = wlf_seat_find_shortcuts_inhibitor(seat, surface);
-    if (!inhibitor) {
-        return WLF_SKIPPED;
-    }
-    wlf_shortcut_inhibitor_destroy(inhibitor);
     return WLF_SUCCESS;
 }
 
