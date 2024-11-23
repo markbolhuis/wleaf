@@ -113,6 +113,9 @@ static const struct wp_fractional_scale_v1_listener wp_fractional_scale_listener
 static void
 wl_surface_enter(void *data, struct wl_surface *, struct wl_output *wl_output)
 {
+    if (!wl_output) {
+        return;
+    }
     struct wlf_output *output = wl_output_get_user_data(wl_output);
     wlf_surface_update_output(data, output, true);
 }
@@ -120,6 +123,9 @@ wl_surface_enter(void *data, struct wl_surface *, struct wl_output *wl_output)
 static void
 wl_surface_leave(void *data, struct wl_surface *, struct wl_output *wl_output)
 {
+    if (!wl_output) {
+        return;
+    }
     struct wlf_output *output = wl_output_get_user_data(wl_output);
     wlf_surface_update_output(data, output, false);
 }
