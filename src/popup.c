@@ -203,7 +203,7 @@ static const struct xdg_surface_listener xdg_surface_listener = {
 // endregion
 
 static void
-wlf_popup_init_state(struct wlf_popup *popup)
+wlf_popup_init_state(struct wlf_popup *popup, const struct wlf_popup_info *info)
 {
     if (popup->s.wp_fractional_scale_v1) {
         popup->s.current.scale = 120;
@@ -216,6 +216,10 @@ wlf_popup_init_state(struct wlf_popup *popup)
     popup->current.offset.x = 0;
     popup->current.offset.y = 0;
     popup->current.token = 0;
+
+    if (info->flags & WLF_POPUP_FLAGS_INHIBIT_IDLING) {
+        wlf_surface_inhibit_idling(&popup->s, true);
+    }
 }
 
 static void
@@ -272,7 +276,7 @@ wlf_popup_init(
 
     xdg_positioner_destroy(pos);
 
-    wlf_popup_init_state(popup);
+    wlf_popup_init_state(popup, info);
     wl_surface_commit(popup->s.wl_surface);
     return WLF_SUCCESS;
 }

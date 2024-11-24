@@ -12,7 +12,7 @@ struct wlf_popup_listener {
 enum wlf_popup_flags : uint32_t {
     WLF_POPUP_FLAGS_NONE = 0,
     WLF_POPUP_FLAGS_REACTIVE = 1,
-    // WLF_POPUP_FLAGS_INHIBIT_IDLING = 2,
+    WLF_POPUP_FLAGS_INHIBIT_IDLING = 2,
 };
 
 struct wlf_popup_position {
