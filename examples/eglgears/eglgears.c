@@ -418,6 +418,15 @@ window_destroy(struct window *win)
 // region Demo
 
 static void
+seat_lost(void *data)
+{
+    struct demo *demo = data;
+    wlf_seat_release(demo->seat);
+    demo->seat = nullptr;
+    demo->seat_id = 0;
+}
+
+static void
 seat_name(void *data, const char8_t *name)
 {
 }
@@ -433,6 +442,7 @@ seat_shortcuts_inhibited(void *data, struct wlf_surface *surface, bool inhibited
 }
 
 static const struct wlf_seat_listener seat_listener = {
+    .lost = seat_lost,
     .name = seat_name,
     .idled = seat_idled,
     .shortcuts_inhibited = seat_shortcuts_inhibited,

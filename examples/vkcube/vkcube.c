@@ -1404,6 +1404,15 @@ demo_destroy_instance(struct demo *demo)
 // region Seat
 
 static void
+seat_lost(void *data)
+{
+    struct demo *demo = data;
+    wlf_seat_release(demo->seat);
+    demo->seat = nullptr;
+    demo->seat_id = 0;
+}
+
+static void
 seat_name(void *, const char8_t *)
 {
 
@@ -1422,6 +1431,7 @@ seat_shortcuts_inhibited(void *, struct wlf_surface *, bool set)
 }
 
 static const struct wlf_seat_listener seat_listener = {
+    .lost                = seat_lost,
     .name                = seat_name,
     .idled               = seat_idled,
     .shortcuts_inhibited = seat_shortcuts_inhibited,
@@ -1456,13 +1466,14 @@ demo_create_context(struct demo *demo)
     enum wlf_result res = wlf_context_create(&cinfo, &context_listener, &demo->context);
     assert(res == WLF_SUCCESS);
 
-    struct wlf_seat_info sinfo = {
-        .id        = demo->seat_id,
-        .user_data = demo,
-    };
-
-    res = wlf_seat_bind(demo->context, &sinfo, &seat_listener, &demo->seat);
-    assert(res == WLF_SUCCESS);
+    if (demo->seat_id != 0) {
+        struct wlf_seat_info sinfo = {
+            .id        = demo->seat_id,
+            .user_data = demo,
+        };
+        res = wlf_seat_bind(demo->context, &sinfo, &seat_listener, &demo->seat);
+        assert(res == WLF_SUCCESS);
+    }
 }
 
 static void
