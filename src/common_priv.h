@@ -65,3 +65,19 @@ wlf_transform_inverse(enum wlf_transform t)
 {
     return (t ^ WLF_TRANSFORM_90) & WLF_TRANSFORM_FLIPPED_90 ? t : t ^ WLF_TRANSFORM_180;
 }
+
+[[maybe_unused]]
+static inline enum wlf_edge
+wlf_edge_clean(enum wlf_edge edge)
+{
+    if (edge > 0b1111) {
+        return WLF_EDGE_NONE;
+    }
+    if ((edge & 0b0011) == 0b0011) {
+        edge &= 0b1100;
+    }
+    if ((edge & 0b1100) == 0b1100) {
+        edge &= 0b0011;
+    }
+    return edge;
+}
