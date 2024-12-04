@@ -142,7 +142,7 @@ wlf_destroy_globals(struct wlf_context *context)
     WLF_GLOBAL_DESTROY(wl_data_device_manager,)
     WLF_GLOBAL_DESTROY(wp_viewporter,)
     WLF_GLOBAL_DESTROY(wp_fractional_scale_manager_v1,)
-    WLF_GLOBAL_DESTROY(wp_content_type_manager_v1,);
+    WLF_GLOBAL_DESTROY(wp_content_type_manager_v1,)
     WLF_GLOBAL_DESTROY(wp_single_pixel_buffer_manager_v1,)
     WLF_GLOBAL_DESTROY(wp_alpha_modifier_v1,)
     WLF_GLOBAL_DESTROY(xdg_wm_base,)
@@ -402,7 +402,7 @@ wl_registry_global(
             version,
             WLF_WP_SINGLE_PIXEL_BUFFER_MANAGER_V1_VERSION);
     }
-    else if (WLF_MATCH(wp_alpha_modifier_v1,)) {
+    else if WLF_MATCH(wp_alpha_modifier_v1,) {
         context->wp_alpha_modifier_v1 = wlf_global_bind(
             context,
             name,
@@ -498,7 +498,6 @@ wl_registry_global_remove(
         } \
     }
 
-    WLF_GLOBAL_REMOVE(wl_subcompositor,);
     WLF_GLOBAL_REMOVE(wl_data_device_manager,);
     WLF_GLOBAL_REMOVE(wp_viewporter,)
     WLF_GLOBAL_REMOVE(wp_fractional_scale_manager_v1,)
@@ -532,31 +531,13 @@ wl_registry_global_remove(
             }
             context->wp_pointer_gestures_v1 = nullptr;
             wlf_global_destroy(global);
+            return;
         }
     }
 
-    // TODO: Remove temporary aborts and implement proper context invalidation
-
-    if (context->xdg_wm_base) {
-        struct wlf_global *global = xdg_wm_base_get_user_data(context->xdg_wm_base);
-        if (global->name == name) {
-            abort();
-        }
-    }
-
-    if (context->wl_compositor) {
-        struct wlf_global *global = wl_compositor_get_user_data(context->wl_compositor);
-        if (global->name == name) {
-            abort();
-        }
-    }
-
-    if (context->wl_shm) {
-        struct wlf_global *global = wl_shm_get_user_data(context->wl_shm);
-        if (global->name == name) {
-            abort();
-        }
-    }
+    // TODO: Remove temporary abort and implement proper context invalidation
+    fprintf(stderr, "%s: Compositor removed critical global %u.\n", __func__, name);
+    abort();
 }
 
 static const struct wl_registry_listener wl_registry_listener = {

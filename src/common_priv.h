@@ -56,7 +56,7 @@ wlf_transform_is_vertical(enum wlf_transform transform)
 static inline bool
 wlf_transform_is_perpendicular(enum wlf_transform before, enum wlf_transform after)
 {
-    return ((before ^ after) & WLF_TRANSFORM_90) == WLF_TRANSFORM_90;
+    return wlf_transform_is_vertical(before ^ after);
 }
 
 [[maybe_unused]]
