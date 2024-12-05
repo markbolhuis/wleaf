@@ -1693,25 +1693,22 @@ wlf_seat_set_idle_time(struct wlf_seat *seat, int64_t time)
         return WLF_ERROR_LOST;
     }
 
-    struct wlf_context *context = seat->global.context;
-
-    enum wlf_result res = WLF_SKIPPED;
-
-    if (seat->ext_idle_notification_v1) {
+    if (time < 0) {
+        if (!seat->ext_idle_notification_v1) {
+            return WLF_SKIPPED;
+        }
         ext_idle_notification_v1_destroy(seat->ext_idle_notification_v1);
         seat->ext_idle_notification_v1 = nullptr;
-        res = WLF_SUCCESS;
+        return WLF_SUCCESS;
     }
 
-    if (time < 0) {
-        return res;
-    }
-
-    if (context->ext_idle_notifier_v1) {
+    struct wlf_context *context = seat->global.context;
+    if (!context->ext_idle_notifier_v1) {
         return WLF_ERROR_UNSUPPORTED;
     }
 
-    uint32_t time_ms = (uint32_t)(time / 10000000);
+    time /= 1'000'000;
+    uint32_t time_ms = time > UINT32_MAX ? UINT32_MAX : (uint32_t)time;
 
     seat->ext_idle_notification_v1 = ext_idle_notifier_v1_get_idle_notification(
         context->ext_idle_notifier_v1,
