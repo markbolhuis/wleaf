@@ -37,6 +37,11 @@ struct wlf_rect {
     struct wlf_extent extent;
 };
 
+struct wlf_point {
+    double x;
+    double y;
+};
+
 enum wlf_edge : uint32_t {
     WLF_EDGE_NONE = 0,
     WLF_EDGE_TOP = 1,

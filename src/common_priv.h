@@ -81,3 +81,45 @@ wlf_edge_clean(enum wlf_edge edge)
     }
     return edge;
 }
+
+[[maybe_unused]]
+static struct wlf_point
+wlf_point_transform(struct wlf_point p, struct wlf_extent e, enum wlf_transform t)
+{
+    struct wlf_point out = { 0.0, 0.0 };
+
+    if (t == WLF_TRANSFORM_NONE) {
+        out.x = p.x;
+        out.y = p.y;
+    }
+    else if (t == WLF_TRANSFORM_90) {
+        out.x = e.height - p.y;
+        out.y = p.x;
+    }
+    else if (t == WLF_TRANSFORM_180) {
+        out.x = e.width - p.x;
+        out.y = e.height - p.y;
+    }
+    else if (t == WLF_TRANSFORM_270) {
+        out.x = p.y;
+        out.y = e.width - p.x;
+    }
+    else if (t == WLF_TRANSFORM_FLIPPED) {
+        out.x = e.width - p.x;
+        out.y = p.y;
+    }
+    else if (t == WLF_TRANSFORM_FLIPPED_90) {
+        out.x = p.y;
+        out.y = p.x;
+    }
+    else if (t == WLF_TRANSFORM_FLIPPED_180) {
+        out.x = p.x;
+        out.y = e.height - p.y;
+    }
+    else if (t == WLF_TRANSFORM_FLIPPED_270) {
+        out.x = e.height - p.y;
+        out.y = e.width - p.x;
+    }
+
+    return out;
+}

@@ -341,4 +341,26 @@ wlf_surface_set_alpha_multiplier(struct wlf_surface *surface, uint32_t factor)
     return WLF_SUCCESS;
 }
 
+struct wlf_offset
+wlf_surface_point_to_buffer_offset(struct wlf_surface *surface, struct wlf_point point)
+{
+    struct wlf_extent extent = wlf_surface_get_surface_extent(surface);
+    enum wlf_transform rev = wlf_transform_inverse(surface->current.transform);
+
+    struct wlf_point tp = wlf_point_transform(point, extent, rev);
+
+    double scale = surface->current.scale;
+
+    if (surface->wp_fractional_scale_v1) {
+        scale /= 120.0;
+    }
+    tp.x *= scale;
+    tp.y *= scale;
+
+    return (struct wlf_offset) {
+        .x = (int32_t)tp.x,
+        .y = (int32_t)tp.y,
+    };
+}
+
 // endregion
