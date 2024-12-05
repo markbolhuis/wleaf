@@ -32,19 +32,19 @@ static inline int64_t
 wlf_tv_to_ns(uint32_t tv_sec_hi, uint32_t tv_sec_lo, uint32_t tv_nsec)
 {
     int64_t tv_sec = ((int64_t)tv_sec_hi << 32) | (int64_t)tv_sec_lo;
-    return (tv_sec * 1000000000) + (int64_t)tv_nsec;
+    return (tv_sec * 1'000'000'000) + (int64_t)tv_nsec;
 }
 
 static inline int64_t
 wlf_us_to_ns(uint32_t utime_hi, uint32_t utime_lo)
 {
-    return (((int64_t)utime_hi) << 32 | (int64_t)utime_lo) * 1000;
+    return (((int64_t)utime_hi) << 32 | (int64_t)utime_lo) * 1'000;
 }
 
 static inline int64_t
 wlf_ms_to_ns(uint32_t mtime)
 {
-    return ((int64_t)mtime) * 1000000;
+    return ((int64_t)mtime) * 1'000'000;
 }
 
 static inline bool
