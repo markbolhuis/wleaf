@@ -240,6 +240,14 @@ wlf_surface_fini(struct wlf_surface *surface)
         free(ref);
     }
 
+    if (surface->wp_alpha_modifier_surface_v1) {
+        wp_alpha_modifier_surface_v1_destroy(surface->wp_alpha_modifier_surface_v1);
+    }
+
+    if (surface->wp_content_type_v1) {
+        wp_content_type_v1_destroy(surface->wp_content_type_v1);
+    }
+
     if (surface->wp_idle_inhibitor_v1) {
         zwp_idle_inhibitor_v1_destroy(surface->wp_idle_inhibitor_v1);
     }
