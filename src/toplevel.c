@@ -16,86 +16,98 @@
 #include "input_priv.h"
 #include "toplevel_priv.h"
 
-static void
-wlf_toplevel_configure(struct wlf_surface *surface, uint32_t serial)
+[[maybe_unused]]
+static struct wlf_rect
+wlf_toplevel_get_geometry(struct wlf_toplevel *tl)
 {
-    struct wlf_toplevel *toplevel = wl_container_of(surface, toplevel, s);
+    return (struct wlf_rect) {
+        .offset = { 0, 0 },
+        .extent = tl->current.extent,
+    };
+}
 
-    enum wlf_surface_event mask = surface->event_mask;
+static void
+wlf_toplevel_configure(struct wlf_toplevel *tl, uint32_t serial)
+{
+    enum wlf_toplevel_event mask = tl->events;
 
-    if (mask & WLF_SURFACE_EVENT_CAPABILITIES) {
-        toplevel->current.capabilities = toplevel->pending.capabilities;
+    if (mask & WLF_TOPLEVEL_EVENT_CAPABILITIES) {
+        tl->current.capabilities = tl->pending.capabilities;
     }
 
-    if (mask & WLF_SURFACE_EVENT_DECORATION) {
-        toplevel->current.decoration = toplevel->pending.decoration;
+    if (mask & WLF_TOPLEVEL_EVENT_DECORATION) {
+        tl->current.decoration = tl->pending.decoration;
     }
 
-    if (mask & WLF_SURFACE_EVENT_STATE) {
-        toplevel->current.state = toplevel->pending.state;
+    if (mask & WLF_TOPLEVEL_EVENT_STATE) {
+        tl->current.state = tl->pending.state;
     }
 
-    if (mask & WLF_SURFACE_EVENT_BOUNDS) {
-        toplevel->current.bounds = toplevel->pending.bounds;
+    if (mask & WLF_TOPLEVEL_EVENT_BOUNDS) {
+        tl->current.bounds = tl->pending.bounds;
     }
 
     bool resized = false;
-    if (mask & WLF_SURFACE_EVENT_EXTENT) {
-        if (surface->pending.extent.width == 0) {
-            surface->pending.extent.width = surface->current.extent.width;
+    if (mask & WLF_TOPLEVEL_EVENT_EXTENT) {
+        if (tl->pending.extent.width == 0) {
+            tl->pending.extent.width = tl->current.extent.width;
         }
-        if (surface->pending.extent.height == 0) {
-            surface->pending.extent.height = surface->current.extent.height;
+        if (tl->pending.extent.height == 0) {
+            tl->pending.extent.height = tl->current.extent.height;
         }
 
-        resized = !wlf_extent_equal(surface->pending.extent, surface->current.extent);
-        surface->current.extent = surface->pending.extent;
+        resized = !wlf_extent_equal(tl->pending.extent, tl->current.extent);
+        tl->current.extent = tl->pending.extent;
     }
 
     bool rescaled = false;
-    if (mask & WLF_SURFACE_EVENT_SCALE) {
-        surface->current.scale = surface->pending.scale;
+    if (mask & WLF_TOPLEVEL_EVENT_SCALE) {
+        tl->current.scale = tl->pending.scale;
         rescaled = true;
         resized = true;
     }
 
     bool transformed = false;
-    if (mask & WLF_SURFACE_EVENT_TRANSFORM) {
+    if (mask & WLF_TOPLEVEL_EVENT_TRANSFORM) {
         resized |= wlf_transform_is_perpendicular(
-            surface->current.transform,
-            surface->pending.transform);
-        surface->current.transform = surface->pending.transform;
+            tl->current.transform,
+            tl->pending.transform);
+        tl->current.transform = tl->pending.transform;
         transformed = true;
     }
 
-    surface->event_mask = WLF_SURFACE_EVENT_NONE;
+    // TODO: Temporary
+    tl->s.scale = tl->current.scale;
+    tl->s.transform = tl->current.transform;
+    tl->s.extent = tl->current.extent;
 
-    if (resized || !surface->configured) {
-        struct wlf_extent be = wlf_surface_get_buffer_extent(surface);
-        struct wlf_extent se = wlf_surface_get_surface_extent(surface);
+    tl->events = WLF_TOPLEVEL_EVENT_NONE;
 
-        if (surface->wl_egl_window) {
-            wl_egl_window_resize(surface->wl_egl_window, be.width, be.height, 0, 0);
+    if (resized || !tl->configured) {
+        struct wlf_extent se = wlf_surface_get_extent(&tl->s);
+        struct wlf_extent be = wlf_surface_get_buffer_extent(&tl->s);
+
+        if (tl->s.wl_egl_window) {
+            wl_egl_window_resize(tl->s.wl_egl_window, be.width, be.height, 0, 0);
         }
 
-        if (surface->wp_fractional_scale_v1) {
-            assert(surface->wp_viewport);
-            wp_viewport_set_destination(surface->wp_viewport, se.width, se.height);
+        if (tl->s.wp_fractional_scale_v1) {
+            assert(tl->s.wp_viewport);
+            wp_viewport_set_destination(tl->s.wp_viewport, se.width, se.height);
         }
 
-        toplevel->listener.configure(toplevel->s.user_data, be);
+        tl->listener.configure(tl->s.user_data, be);
     }
 
-    uint32_t version = wl_surface_get_version(surface->wl_surface);
-    if (rescaled &&
-        !surface->wp_fractional_scale_v1 &&
-        version >= WL_SURFACE_SET_BUFFER_SCALE_SINCE_VERSION)
-    {
-        wl_surface_set_buffer_scale(surface->wl_surface, surface->current.scale);
+    uint32_t version = wl_surface_get_version(tl->s.wl_surface);
+    if (rescaled && !tl->s.wp_fractional_scale_v1) {
+        assert(version >= WL_SURFACE_SET_BUFFER_SCALE_SINCE_VERSION);
+        wl_surface_set_buffer_scale(tl->s.wl_surface, tl->current.scale);
     }
 
-    if (transformed && version >= WL_SURFACE_SET_BUFFER_TRANSFORM_SINCE_VERSION) {
-        wl_surface_set_buffer_transform(toplevel->s.wl_surface, surface->current.transform);
+    if (transformed) {
+        assert(version >= WL_SURFACE_SET_BUFFER_TRANSFORM_SINCE_VERSION);
+        wl_surface_set_buffer_transform(tl->s.wl_surface, tl->current.transform);
     }
 }
 
@@ -109,10 +121,10 @@ xdg_toplevel_decoration_v1_configure(
 {
     struct wlf_toplevel *toplevel = data;
 
-    toplevel->s.event_mask &= ~WLF_SURFACE_EVENT_DECORATION;
+    toplevel->events &= ~WLF_TOPLEVEL_EVENT_DECORATION;
 
     if (toplevel->current.decoration != mode) {
-        toplevel->s.event_mask |= WLF_SURFACE_EVENT_DECORATION;
+        toplevel->events |= WLF_TOPLEVEL_EVENT_DECORATION;
         toplevel->pending.decoration = mode;
     }
 }
@@ -171,18 +183,18 @@ xdg_toplevel_configure(
         }
     }
 
-    toplevel->s.event_mask &= ~(WLF_SURFACE_EVENT_EXTENT | WLF_SURFACE_EVENT_STATE);
+    toplevel->events &= ~(WLF_TOPLEVEL_EVENT_EXTENT | WLF_TOPLEVEL_EVENT_STATE);
 
-    if (toplevel->s.current.extent.width != width ||
-        toplevel->s.current.extent.height != height)
+    if (toplevel->current.extent.width != width ||
+        toplevel->current.extent.height != height)
     {
-        toplevel->s.event_mask |= WLF_SURFACE_EVENT_EXTENT;
-        toplevel->s.pending.extent.width = width;
-        toplevel->s.pending.extent.height = height;
+        toplevel->events |= WLF_TOPLEVEL_EVENT_EXTENT;
+        toplevel->pending.extent.width = width;
+        toplevel->pending.extent.height = height;
     }
 
     if (toplevel->current.state != pending) {
-        toplevel->s.event_mask |= WLF_SURFACE_EVENT_STATE;
+        toplevel->events |= WLF_TOPLEVEL_EVENT_STATE;
         toplevel->pending.state = pending;
     }
 }
@@ -203,12 +215,12 @@ xdg_toplevel_configure_bounds(
 {
     struct wlf_toplevel *toplevel = data;
 
-    toplevel->s.event_mask &= ~WLF_SURFACE_EVENT_BOUNDS;
+    toplevel->events &= ~WLF_TOPLEVEL_EVENT_BOUNDS;
 
     if (toplevel->current.bounds.width != max_width ||
         toplevel->current.bounds.height != max_height)
     {
-        toplevel->s.event_mask |= WLF_SURFACE_EVENT_BOUNDS;
+        toplevel->events |= WLF_TOPLEVEL_EVENT_BOUNDS;
         toplevel->pending.bounds.width = max_width;
         toplevel->pending.bounds.height = max_height;
     }
@@ -240,10 +252,10 @@ xdg_toplevel_wm_capabilities(void *data, struct xdg_toplevel *, struct wl_array 
         }
     }
 
-    toplevel->s.event_mask &= ~WLF_SURFACE_EVENT_CAPABILITIES;
+    toplevel->events &= ~WLF_TOPLEVEL_EVENT_CAPABILITIES;
 
     if (toplevel->current.capabilities != pending) {
-        toplevel->s.event_mask |= WLF_SURFACE_EVENT_CAPABILITIES;
+        toplevel->events |= WLF_TOPLEVEL_EVENT_CAPABILITIES;
         toplevel->pending.capabilities = pending;
     }
 }
@@ -264,12 +276,12 @@ xdg_surface_configure(void *data, struct xdg_surface *xdg_surface, uint32_t seri
 {
     struct wlf_toplevel *toplevel = data;
 
-    if (toplevel->s.event_mask != WLF_SURFACE_EVENT_NONE || !toplevel->s.configured) {
-        toplevel->s.configure(&toplevel->s, serial);
+    if (toplevel->events != WLF_TOPLEVEL_EVENT_NONE || !toplevel->configured) {
+        wlf_toplevel_configure(toplevel, serial);
     }
 
     xdg_surface_ack_configure(toplevel->xdg_surface, serial);
-    toplevel->s.configured = true;
+    toplevel->configured = true;
 }
 
 static const struct xdg_surface_listener xdg_surface_listener = {
@@ -278,16 +290,54 @@ static const struct xdg_surface_listener xdg_surface_listener = {
 
 // endregion
 
+// region Surface
+
+static void
+wlf_toplevel_configure_scale(struct wlf_surface *surface, int32_t scale)
+{
+    struct wlf_toplevel *tl = wl_container_of(surface, tl, s);
+
+    tl->events &= ~WLF_TOPLEVEL_EVENT_SCALE;
+
+    if (tl->current.scale != scale) {
+        tl->events |= WLF_TOPLEVEL_EVENT_SCALE;
+        tl->pending.scale = scale;
+
+        if (tl->configured) {
+            wlf_toplevel_configure(tl, 0);
+        }
+    }
+}
+
+static void
+wlf_toplevel_configure_transform(struct wlf_surface *surface, enum wlf_transform transform)
+{
+    struct wlf_toplevel *tl = wl_container_of(surface, tl, s);
+
+    tl->events &= ~WLF_TOPLEVEL_EVENT_TRANSFORM;
+
+    if (tl->current.transform != transform) {
+        tl->events |= WLF_TOPLEVEL_EVENT_TRANSFORM;
+        tl->pending.transform = transform;
+
+        if (tl->configured) {
+            wlf_toplevel_configure(tl, 0);
+        }
+    }
+}
+
+// endregion
+
 static void
 wlf_toplevel_init_state(struct wlf_toplevel *toplevel, const struct wlf_toplevel_info *info)
 {
     if (toplevel->s.wp_fractional_scale_v1) {
-        toplevel->s.current.scale = 120;
+        toplevel->current.scale = 120;
     } else {
-        toplevel->s.current.scale = 1;
+        toplevel->current.scale = 1;
     }
-    toplevel->s.current.transform = WLF_TRANSFORM_NONE;
-    toplevel->s.current.extent = info->extent;
+    toplevel->current.transform = WLF_TRANSFORM_NONE;
+    toplevel->current.extent = info->extent;
     toplevel->current.state = WLF_TOPLEVEL_STATE_NONE;
     toplevel->current.bounds.width = 0;
     toplevel->current.bounds.height = 0;
@@ -297,7 +347,7 @@ wlf_toplevel_init_state(struct wlf_toplevel *toplevel, const struct wlf_toplevel
     if (xdg_toplevel_get_version(toplevel->xdg_toplevel) <
         XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION)
     {
-        toplevel->s.event_mask |= WLF_SURFACE_EVENT_CAPABILITIES;
+        toplevel->events |= WLF_TOPLEVEL_EVENT_CAPABILITIES;
         toplevel->pending.capabilities = WLF_TOPLEVEL_CAPABILITIES_WINDOW_MENU
                                        | WLF_TOPLEVEL_CAPABILITIES_MAXIMIZE
                                        | WLF_TOPLEVEL_CAPABILITIES_FULLSCREEN
@@ -305,7 +355,7 @@ wlf_toplevel_init_state(struct wlf_toplevel *toplevel, const struct wlf_toplevel
     }
 
     if (!toplevel->xdg_toplevel_decoration_v1) {
-        toplevel->s.event_mask |= WLF_SURFACE_EVENT_DECORATION;
+        toplevel->events |= WLF_TOPLEVEL_EVENT_DECORATION;
         toplevel->pending.decoration = WLF_DECORATION_MODE_CLIENT_SIDE;
     }
 
@@ -348,7 +398,8 @@ wlf_toplevel_init(
         return res;
     }
 
-    toplevel->s.configure = wlf_toplevel_configure;
+    toplevel->s.configure_scale = wlf_toplevel_configure_scale,
+    toplevel->s.configure_transform = wlf_toplevel_configure_transform,
     toplevel->s.user_data = info->user_data;
     toplevel->listener = *listener;
 

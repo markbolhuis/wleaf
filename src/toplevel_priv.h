@@ -3,6 +3,17 @@
 #include "wlf/toplevel.h"
 #include "surface_priv.h"
 
+enum wlf_toplevel_event : uint32_t {
+    WLF_TOPLEVEL_EVENT_NONE = 0,
+    WLF_TOPLEVEL_EVENT_SCALE = 1,
+    WLF_TOPLEVEL_EVENT_TRANSFORM = 2,
+    WLF_TOPLEVEL_EVENT_EXTENT = 4,
+    WLF_TOPLEVEL_EVENT_STATE = 8,
+    WLF_TOPLEVEL_EVENT_BOUNDS = 16,
+    WLF_TOPLEVEL_EVENT_CAPABILITIES = 32,
+    WLF_TOPLEVEL_EVENT_DECORATION = 64,
+};
+
 enum wlf_toplevel_capabilities : uint32_t {
     WLF_TOPLEVEL_CAPABILITIES_NONE = 0,
     WLF_TOPLEVEL_CAPABILITIES_WINDOW_MENU = 1,
@@ -33,7 +44,11 @@ struct wlf_toplevel {
     struct xdg_dialog_v1 *xdg_dialog_v1;
     struct zxdg_toplevel_decoration_v1 *xdg_toplevel_decoration_v1;
 
+    enum wlf_toplevel_event events;
     struct {
+        struct wlf_extent extent;
+        int32_t scale;
+        enum wlf_transform transform;
         struct wlf_extent bounds;
         enum wlf_toplevel_state state;
         enum wlf_toplevel_capabilities capabilities;

@@ -15,49 +15,27 @@
 #include "surface_priv.h"
 
 struct wlf_extent
-wlf_surface_get_geometry_extent(struct wlf_surface *s)
+wlf_surface_get_extent(struct wlf_surface *surface)
 {
-    return s->current.extent;
+    return surface->extent;
 }
 
 struct wlf_extent
-wlf_surface_get_surface_extent(struct wlf_surface *s)
+wlf_surface_get_buffer_extent(struct wlf_surface *surface)
 {
-    // Until CSD is implemented surface extent is the same as geometry
-    return wlf_surface_get_geometry_extent(s);
-}
-
-struct wlf_extent
-wlf_surface_get_buffer_extent(struct wlf_surface *s)
-{
-    struct wlf_extent extent = wlf_surface_get_surface_extent(s);
-    if (wlf_transform_is_vertical(s->current.transform)) {
+    struct wlf_extent extent = wlf_surface_get_extent(surface);
+    if (wlf_transform_is_vertical(surface->transform)) {
         int32_t tmp = extent.width;
         extent.width = extent.height;
         extent.height = tmp;
     }
-    extent.width *= s->current.scale;
-    extent.height *= s->current.scale;
-    if (s->wp_fractional_scale_v1) {
+    extent.width *= surface->scale;
+    extent.height *= surface->scale;
+    if (surface->wp_fractional_scale_v1) {
         extent.width = wlf_div_round(extent.width, 120);
         extent.height = wlf_div_round(extent.height, 120);
     }
     return extent;
-}
-
-static void
-wlf_surface_configure_scale(struct wlf_surface *surface, int32_t scale)
-{
-    surface->event_mask &= ~WLF_SURFACE_EVENT_SCALE;
-
-    if (surface->current.scale != scale) {
-        surface->event_mask |= WLF_SURFACE_EVENT_SCALE;
-        surface->pending.scale = scale;
-
-        if (surface->configured) {
-            surface->configure(surface, 0);
-        }
-    }
 }
 
 static void
@@ -81,7 +59,7 @@ wlf_surface_update_output(struct wlf_surface *surface, struct wlf_output *output
     }
 
     int32_t scale = wlf_output_ref_list_get_max_scale(list);
-    wlf_surface_configure_scale(surface, scale);
+    surface->configure_scale(surface, scale);
 }
 
 void
@@ -99,7 +77,7 @@ static void
 wp_fractional_scale_v1_preferred_scale(void *data, struct wp_fractional_scale_v1 *, uint32_t scale)
 {
     struct wlf_surface *surface = data;
-    wlf_surface_configure_scale(surface, (int32_t)scale);
+    surface->configure_scale(surface, (int32_t)scale);
 }
 
 static const struct wp_fractional_scale_v1_listener wp_fractional_scale_listener = {
@@ -140,7 +118,7 @@ wl_surface_preferred_buffer_scale(void *data, struct wl_surface *, int32_t facto
         return;
     }
 
-    wlf_surface_configure_scale(surface, factor);
+    surface->configure_scale(surface, factor);
 }
 #endif
 
@@ -149,17 +127,7 @@ static void
 wl_surface_preferred_buffer_transform(void *data, struct wl_surface *, uint32_t transform)
 {
     struct wlf_surface *surface = data;
-
-    surface->event_mask &= ~WLF_SURFACE_EVENT_TRANSFORM;
-
-    if (surface->current.transform != transform) {
-        surface->event_mask |= WLF_SURFACE_EVENT_TRANSFORM;
-        surface->pending.transform = transform;
-
-        if (surface->configured) {
-            surface->configure(surface, 0);
-        }
-    }
+    surface->configure_transform(surface, transform);
 }
 #endif
 
@@ -352,12 +320,12 @@ wlf_surface_set_alpha_multiplier(struct wlf_surface *surface, uint32_t factor)
 struct wlf_offset
 wlf_surface_point_to_buffer_offset(struct wlf_surface *surface, struct wlf_point point)
 {
-    struct wlf_extent extent = wlf_surface_get_surface_extent(surface);
-    enum wlf_transform rev = wlf_transform_inverse(surface->current.transform);
+    struct wlf_extent extent = wlf_surface_get_extent(surface);
+    enum wlf_transform rev = wlf_transform_inverse(surface->transform);
 
     struct wlf_point tp = wlf_point_transform(point, extent, rev);
 
-    double scale = surface->current.scale;
+    double scale = surface->scale;
 
     if (surface->wp_fractional_scale_v1) {
         scale /= 120.0;

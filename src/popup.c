@@ -58,69 +58,72 @@ get_xdg_surface(struct wlf_surface *surface)
 }
 
 static void
-wlf_popup_configure(struct wlf_surface *surface, uint32_t serial)
+wlf_popup_configure(struct wlf_popup *p, uint32_t serial)
 {
-    struct wlf_popup *popup = wl_container_of(surface, popup, s);
-    enum wlf_surface_event mask = popup->s.event_mask;
+    enum wlf_popup_event mask = p->events;
 
-    if (mask & WLF_SURFACE_EVENT_REPOSITIONED) {
-        popup->current.token = popup->current.token;
+    if (mask & WLF_POPUP_EVENT_REPOSITIONED) {
+        p->current.token = p->current.token;
     }
 
-    if (mask & WLF_SURFACE_EVENT_OFFSET) {
-        popup->current.offset = popup->pending.offset;
+    if (mask & WLF_POPUP_EVENT_OFFSET) {
+        p->current.offset = p->pending.offset;
     }
 
     bool resized = false;
-    if (mask & WLF_SURFACE_EVENT_EXTENT) {
-        popup->s.current.extent = popup->s.pending.extent;
+    if (mask & WLF_POPUP_EVENT_EXTENT) {
+        p->current.extent = p->pending.extent;
         resized = true;
     }
 
     bool rescaled = false;
-    if (mask & WLF_SURFACE_EVENT_SCALE) {
-        surface->current.extent = surface->pending.extent;
+    if (mask & WLF_POPUP_EVENT_SCALE) {
+        p->current.extent = p->pending.extent;
         resized = true;
         rescaled = true;
     }
 
     bool transformed = false;
-    if (mask & WLF_SURFACE_EVENT_TRANSFORM) {
-        surface->current.transform = surface->pending.transform;
+    if (mask & WLF_POPUP_EVENT_TRANSFORM) {
+        p->current.transform = p->pending.transform;
         transformed = true;
         resized |= wlf_transform_is_perpendicular(
-            surface->pending.transform,
-            surface->current.transform);
+            p->pending.transform,
+            p->current.transform);
     }
 
-    surface->event_mask = WLF_SURFACE_EVENT_NONE;
+    p->events = WLF_POPUP_EVENT_NONE;
 
-    if (resized || !surface->configured) {
-        struct wlf_extent be = wlf_surface_get_buffer_extent(surface);
-        struct wlf_extent se = wlf_surface_get_surface_extent(surface);
+    // TODO: Temporary
+    p->s.scale = p->current.scale;
+    p->s.extent = p->current.extent;
+    p->s.transform = p->current.transform;
 
-        if (surface->wl_egl_window) {
-            wl_egl_window_resize(surface->wl_egl_window, be.width, be.height, 0, 0);
+    if (resized || !p->configured) {
+        struct wlf_extent se = wlf_surface_get_extent(&p->s);
+        struct wlf_extent be = wlf_surface_get_buffer_extent(&p->s);
+
+        if (p->s.wl_egl_window) {
+            wl_egl_window_resize(p->s.wl_egl_window, be.width, be.height, 0, 0);
         }
 
-        if (surface->wp_fractional_scale_v1) {
-            assert(surface->wp_viewport);
-            wp_viewport_set_destination(surface->wp_viewport, se.width, se.height);
+        if (p->s.wp_fractional_scale_v1) {
+            assert(p->s.wp_viewport);
+            wp_viewport_set_destination(p->s.wp_viewport, se.width, se.height);
         }
 
-        popup->listener.configure(popup->s.user_data, be);
+        p->listener.configure(p->s.user_data, be);
     }
 
-    uint32_t version = wl_surface_get_version(surface->wl_surface);
-    if (rescaled &&
-        !surface->wp_fractional_scale_v1 &&
-        version >= WL_SURFACE_SET_BUFFER_SCALE_SINCE_VERSION)
-    {
-        wl_surface_set_buffer_scale(surface->wl_surface, surface->current.scale);
+    uint32_t version = wl_surface_get_version(p->s.wl_surface);
+    if (rescaled && !p->s.wp_fractional_scale_v1) {
+        assert(version >= WL_SURFACE_SET_BUFFER_SCALE_SINCE_VERSION);
+        wl_surface_set_buffer_scale(p->s.wl_surface, p->current.scale);
     }
 
-    if (transformed && version >= WL_SURFACE_SET_BUFFER_TRANSFORM_SINCE_VERSION) {
-        wl_surface_set_buffer_transform(surface->wl_surface, surface->current.transform);
+    if (transformed) {
+        assert(version >= WL_SURFACE_SET_BUFFER_TRANSFORM_SINCE_VERSION);
+        wl_surface_set_buffer_transform(p->s.wl_surface, p->current.transform);
     }
 }
 
@@ -137,18 +140,18 @@ xdg_popup_configure(
 {
     struct wlf_popup *popup = data;
 
-    popup->s.event_mask &= ~(WLF_SURFACE_EVENT_EXTENT | WLF_SURFACE_EVENT_OFFSET);
+    popup->events &= ~(WLF_POPUP_EVENT_EXTENT | WLF_POPUP_EVENT_OFFSET);
 
     if (x != popup->current.offset.x || y != popup->current.offset.y) {
-        popup->s.event_mask |= WLF_SURFACE_EVENT_OFFSET;
+        popup->events |= WLF_POPUP_EVENT_OFFSET;
         popup->pending.offset.x = x;
         popup->pending.offset.y = y;
     }
 
-    if (width != popup->s.current.extent.width || height != popup->s.current.extent.height) {
-        popup->s.event_mask |= WLF_SURFACE_EVENT_EXTENT;
-        popup->s.pending.extent.width = width;
-        popup->s.pending.extent.height = height;
+    if (width != popup->current.extent.width || height != popup->current.extent.height) {
+        popup->events |= WLF_POPUP_EVENT_EXTENT;
+        popup->pending.extent.width = width;
+        popup->pending.extent.height = height;
     }
 }
 
@@ -164,10 +167,10 @@ xdg_popup_repositioned(void *data, struct xdg_popup *xdg_popup, uint32_t token)
 {
     struct wlf_popup *popup = data;
 
-    popup->s.event_mask &= ~WLF_SURFACE_EVENT_REPOSITIONED;
+    popup->events &= ~WLF_POPUP_EVENT_REPOSITIONED;
 
     if (token != popup->current.token) {
-        popup->s.event_mask |= WLF_SURFACE_EVENT_REPOSITIONED;
+        popup->events |= WLF_POPUP_EVENT_REPOSITIONED;
         popup->pending.token = token;
     }
 }
@@ -186,14 +189,13 @@ static void
 xdg_surface_configure(void *data, struct xdg_surface *xdg_surface, uint32_t serial)
 {
     struct wlf_popup *popup = data;
-    struct wlf_surface *surface = &popup->s;
 
-    if (surface->event_mask != WLF_SURFACE_EVENT_NONE || !surface->configured) {
-        surface->configure(surface, serial);
+    if (popup->events != WLF_POPUP_EVENT_NONE || !popup->configured) {
+        wlf_popup_configure(popup, serial);
     }
 
     xdg_surface_ack_configure(popup->xdg_surface, serial);
-    surface->configured = true;
+    popup->configured = true;
 }
 
 static const struct xdg_surface_listener xdg_surface_listener = {
@@ -202,17 +204,55 @@ static const struct xdg_surface_listener xdg_surface_listener = {
 
 // endregion
 
+// region Surface
+
+static void
+wlf_popup_configure_scale(struct wlf_surface *surface, int32_t scale)
+{
+    struct wlf_popup *p = wl_container_of(surface, p, s);
+
+    p->events &= ~WLF_POPUP_EVENT_SCALE;
+
+    if (p->current.scale != scale) {
+        p->events |= WLF_POPUP_EVENT_SCALE;
+        p->pending.scale = scale;
+
+        if (p->configured) {
+            wlf_popup_configure(p, 0);
+        }
+    }
+}
+
+static void
+wlf_popup_configure_transform(struct wlf_surface *surface, enum wlf_transform transform)
+{
+    struct wlf_popup *p = wl_container_of(surface, p, s);
+
+    p->events &= ~WLF_POPUP_EVENT_TRANSFORM;
+
+    if (p->current.transform != transform) {
+        p->events |= WLF_POPUP_EVENT_TRANSFORM;
+        p->pending.transform = transform;
+
+        if (p->configured) {
+            wlf_popup_configure(p, 0);
+        }
+    }
+}
+
+// endregion
+
 static void
 wlf_popup_init_state(struct wlf_popup *popup, const struct wlf_popup_info *info)
 {
     if (popup->s.wp_fractional_scale_v1) {
-        popup->s.current.scale = 120;
+        popup->current.scale = 120;
     } else {
-        popup->s.current.scale = 1;
+        popup->current.scale = 1;
     }
-    popup->s.current.transform = WLF_TRANSFORM_NONE;
-    popup->s.current.extent.width = 0;
-    popup->s.current.extent.height = 0;
+    popup->current.transform = WLF_TRANSFORM_NONE;
+    popup->current.extent.width = 0;
+    popup->current.extent.height = 0;
     popup->current.offset.x = 0;
     popup->current.offset.y = 0;
     popup->current.token = 0;
@@ -262,7 +302,8 @@ wlf_popup_init(
     }
 
     popup->listener = *listener;
-    popup->s.configure = wlf_popup_configure;
+    popup->s.configure_scale = wlf_popup_configure_scale,
+    popup->s.configure_transform = wlf_popup_configure_transform,
     popup->s.user_data = info->user_data;
 
     popup->xdg_surface = xdg_wm_base_get_xdg_surface(context->xdg_wm_base, popup->s.wl_surface);
