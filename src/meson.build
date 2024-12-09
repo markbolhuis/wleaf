@@ -92,3 +92,5 @@ dep_wlf = declare_dependency(
 )
 
 meson.override_dependency('wleaf', dep_wlf)
+
+mod_pkg.generate(lib_wlf, subdirs : 'wleaf-0.0')

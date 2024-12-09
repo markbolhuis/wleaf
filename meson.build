@@ -9,6 +9,8 @@ project('wleaf', 'c',
   meson_version : '>= 0.63.0',
 )
 
+mod_pkg = import('pkgconfig')
+
 add_project_arguments(
   '-Wno-unused-parameter',
   language : 'c',
