@@ -1636,6 +1636,18 @@ wlf_seat_release(struct wlf_seat *seat)
     }
 }
 
+void
+wlf_seat_set_user_data(struct wlf_seat *seat, void *data)
+{
+    seat->user_data = data;
+}
+
+void *
+wlf_seat_get_user_data(struct wlf_seat *seat)
+{
+    return seat->user_data;
+}
+
 enum wlf_result
 wlf_seat_inhibit_shortcuts(struct wlf_seat *seat, struct wlf_surface *surface, bool inhibit)
 {
