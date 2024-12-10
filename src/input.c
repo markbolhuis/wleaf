@@ -787,9 +787,6 @@ wl_keyboard_keymap(
     xkb_state_unref(keyboard->xkb_state);
     keyboard->xkb_state = nullptr;
 
-    xkb_keymap_unref(keyboard->xkb_keymap);
-    keyboard->xkb_keymap = nullptr;
-
     if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
         close(fd);
         return;
@@ -812,8 +809,8 @@ wl_keyboard_keymap(
     }
 
     struct xkb_state *state = xkb_state_new(keymap);
+    xkb_keymap_unref(keymap);
     if (!state) {
-        xkb_keymap_unref(keymap);
         return;
     }
 
@@ -828,8 +825,8 @@ wl_keyboard_keymap(
             xkb_compose_table_unref(table);
         }
     }
+
     keyboard->xkb_compose_state = compose_state;
-    keyboard->xkb_keymap = keymap;
     keyboard->xkb_state = state;
 }
 
@@ -956,7 +953,6 @@ wlf_seat_fini_keyboard(struct wlf_seat *seat)
 
     xkb_compose_state_unref(keyboard->xkb_compose_state);
     xkb_state_unref(keyboard->xkb_state);
-    xkb_keymap_unref(keyboard->xkb_keymap);
     xkb_context_unref(keyboard->xkb_context);
 
     memset(keyboard, 0, sizeof(struct wlf_keyboard));
