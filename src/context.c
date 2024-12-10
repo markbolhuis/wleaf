@@ -31,7 +31,7 @@
 
 const uint32_t WLF_WL_COMPOSITOR_VERSION = 6;
 const uint32_t WLF_WL_SUBCOMPOSITOR_VERSION = 1;
-const uint32_t WLF_WL_SHM_VERSION = 1;
+const uint32_t WLF_WL_SHM_VERSION = 2;
 const uint32_t WLF_WL_SEAT_VERSION = 9;
 const uint32_t WLF_WL_OUTPUT_VERSION = 4;
 const uint32_t WLF_WL_DATA_DEVICE_MANAGER_VERSION = 3;
@@ -138,7 +138,6 @@ wlf_destroy_globals(struct wlf_context *context)
 
     WLF_GLOBAL_DESTROY(wl_compositor,)
     WLF_GLOBAL_DESTROY(wl_subcompositor,)
-    WLF_GLOBAL_DESTROY(wl_shm,)
     WLF_GLOBAL_DESTROY(wl_data_device_manager,)
     WLF_GLOBAL_DESTROY(wp_viewporter,)
     WLF_GLOBAL_DESTROY(wp_fractional_scale_manager_v1,)
@@ -157,6 +156,20 @@ wlf_destroy_globals(struct wlf_context *context)
     WLF_GLOBAL_DESTROY(wp_text_input_manager_v3, z)
     WLF_GLOBAL_DESTROY(xdg_decoration_manager_v1, z)
     WLF_GLOBAL_DESTROY(xdg_output_manager_v1, z)
+
+    if (context->wl_shm) {
+        struct wlf_global *global = wl_shm_get_user_data(context->wl_shm);
+        wlf_global_destroy(global);
+#ifdef WL_SHM_RELEASE_SINCE_VERSION
+        if (wl_shm_get_version(context->wl_shm) >= WL_SHM_RELEASE_SINCE_VERSION) {
+            wl_shm_release(context->wl_shm);
+        } else
+#endif
+        {
+            wl_shm_destroy(context->wl_shm);
+        }
+        context->wl_shm = nullptr;
+    }
 
     if (context->wp_pointer_gestures_v1) {
         struct wlf_global *global = zwp_pointer_gestures_v1_get_user_data(
