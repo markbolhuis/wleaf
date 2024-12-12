@@ -3,7 +3,7 @@
 #include "wlf/common.h"
 
 struct wlf_context_listener {
-    void (*seat_added)(void *user_data, uint64_t id);
+    void (*seat)(void *user_data, uint64_t id, bool added);
 };
 
 enum wlf_context_flags : uint32_t {

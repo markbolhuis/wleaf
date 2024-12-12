@@ -302,7 +302,7 @@ wl_registry_global(
     }
     else if (strcmp(interface, wl_seat_interface.name) == 0) {
         struct wlf_seat *seat = wlf_seat_add(context, name, version);
-        context->listener.seat_added(context->user_data, seat->global.id);
+        context->listener.seat(context->user_data, seat->global.id, true);
     }
     else if (strcmp(interface, wl_output_interface.name) == 0) {
         wlf_output_bind(context, name, version);
@@ -487,6 +487,7 @@ wl_registry_global_remove(
     struct wlf_seat *seat, *seat_tmp;
     wl_list_for_each_safe(seat, seat_tmp, &context->seat_list, link) {
         if (seat->global.name == name) {
+            context->listener.seat(context->user_data, seat->global.id, false);
             wlf_seat_remove(seat);
             return;
         }

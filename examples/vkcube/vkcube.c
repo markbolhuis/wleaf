@@ -1404,15 +1404,6 @@ demo_destroy_instance(struct demo *demo)
 // region Seat
 
 static void
-seat_lost(void *data)
-{
-    struct demo *demo = data;
-    wlf_seat_release(demo->seat);
-    demo->seat = nullptr;
-    demo->seat_id = 0;
-}
-
-static void
 seat_name(void *, const char8_t *)
 {
 
@@ -1427,11 +1418,10 @@ seat_idled(void *, bool)
 static void
 seat_shortcuts_inhibited(void *, struct wlf_surface *, bool set)
 {
-    printf("%s: %u\n", __func__, set);
+
 }
 
 static const struct wlf_seat_listener seat_listener = {
-    .lost                = seat_lost,
     .name                = seat_name,
     .idled               = seat_idled,
     .shortcuts_inhibited = seat_shortcuts_inhibited,
@@ -1442,17 +1432,22 @@ static const struct wlf_seat_listener seat_listener = {
 // region Context
 
 static void
-on_seat_added(void *data, uint64_t id)
+on_seat(void *data, uint64_t id, bool added)
 {
     struct demo *demo = data;
-    if (demo->seat_id == 0) {
-        printf("seat %w64u\n", id);
-        demo->seat_id = id;
+    if (added) {
+        if (demo->seat_id == 0) {
+            demo->seat_id = id;
+        }
+    } else if (demo->seat) {
+        wlf_seat_release(demo->seat);
+        demo->seat = nullptr;
+        demo->seat_id = 0;
     }
 }
 
 static const struct wlf_context_listener context_listener = {
-    .seat_added = on_seat_added,
+    .seat = on_seat,
 };
 
 static void

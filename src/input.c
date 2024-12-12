@@ -1563,9 +1563,6 @@ wlf_seat_remove(struct wlf_seat *seat)
 
     if (seat->wl_seat) {
         wlf_seat_fini(seat);
-        if (seat->listener.lost) {
-            seat->listener.lost(seat->user_data);
-        }
     } else {
         free(seat);
     }

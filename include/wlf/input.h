@@ -64,7 +64,6 @@ enum wlf_key_state : uint32_t {
 };
 
 struct wlf_seat_listener {
-    void (*lost)(void *user_data);
     void (*name)(void *user_data, const char8_t *name);
     void (*idled)(void *user_data, bool idled);
     void (*shortcuts_inhibited)(void *user_data, struct wlf_surface *surface, bool inhibited);
