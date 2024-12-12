@@ -562,6 +562,10 @@ wlf_toplevel_set_max_extent(struct wlf_toplevel *toplevel, struct wlf_extent ext
 enum wlf_result
 wlf_toplevel_show_menu(struct wlf_toplevel *toplevel, struct wlf_seat *seat, uint32_t serial, struct wlf_offset offset)
 {
+    if (!seat->wl_seat) {
+        return WLF_ERROR_LOST;
+    }
+
     if ((toplevel->current.capabilities & WLF_TOPLEVEL_CAPABILITIES_WINDOW_MENU) == 0) {
         return WLF_SKIPPED;
     }
