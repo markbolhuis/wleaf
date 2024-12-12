@@ -342,7 +342,7 @@ wlf_toplevel_init_state(struct wlf_toplevel *toplevel, const struct wlf_toplevel
     toplevel->current.bounds.width = 0;
     toplevel->current.bounds.height = 0;
     toplevel->current.capabilities = WLF_TOPLEVEL_CAPABILITIES_NONE;
-    toplevel->current.decoration = WLF_DECORATION_MODE_CLIENT_SIDE;
+    toplevel->current.decoration = WLF_DECORATION_MODE_NO_PREFERENCE;
 
     if (xdg_toplevel_get_version(toplevel->xdg_toplevel) <
         XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION)
