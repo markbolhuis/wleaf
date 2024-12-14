@@ -1561,11 +1561,7 @@ wlf_seat_remove(struct wlf_seat *seat)
     seat->global.name = 0;
     seat->global.version = 0;
 
-    if (seat->wl_seat) {
-        wlf_seat_fini(seat);
-    } else {
-        free(seat);
-    }
+    wlf_seat_release(seat);
 }
 
 void
