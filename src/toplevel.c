@@ -532,6 +532,10 @@ wlf_toplevel_move(struct wlf_toplevel *toplevel, struct wlf_seat *seat, uint32_t
 enum wlf_result
 wlf_toplevel_resize(struct wlf_toplevel *toplevel, struct wlf_seat *seat, uint32_t serial, enum wlf_edge edge)
 {
+    edge = wlf_edge_clean(edge);
+    if (edge == WLF_EDGE_NONE) {
+        return WLF_ERROR_INVALID_ARGUMENT;
+    }
     if (!seat->wl_seat) {
         return WLF_ERROR_LOST;
     }
