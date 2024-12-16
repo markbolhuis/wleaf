@@ -531,6 +531,13 @@ static void
 demo_fini(struct demo *demo)
 {
     eglTerminate(demo->display);
+
+    if (demo->seat) {
+        wlf_seat_release(demo->seat);
+        demo->seat = nullptr;
+        demo->seat_id = 0;
+    }
+
     wlf_context_destroy(demo->context);
 }
 

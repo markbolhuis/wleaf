@@ -1474,9 +1474,11 @@ demo_create_context(struct demo *demo)
 static void
 demo_destroy_context(struct demo *demo)
 {
-    wlf_seat_release(demo->seat);
-    demo->seat = nullptr;
-    demo->seat_id = 0;
+    if (demo->seat) {
+        wlf_seat_release(demo->seat);
+        demo->seat = nullptr;
+        demo->seat_id = 0;
+    }
 
     wlf_context_destroy(demo->context);
     demo->context = nullptr;
