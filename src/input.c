@@ -34,41 +34,41 @@ extern const uint32_t WLF_WL_SEAT_VERSION;
 // region Cursor
 
 static const char *wlf_cursor_names[35] = {
-    nullptr,         // WLF_CURSOR_HIDDEN
-    "default",       // WLF_CURSOR_DEFAULT
-    "context-menu",  // WLF_CURSOR_CONTEXT_MENU
-    "help",          // WLF_CURSOR_HELP
-    "pointer",       // WLF_CURSOR_POINTER
-    "progress",      // WLF_CURSOR_PROGRESS
-    "wait",          // WLF_CURSOR_WAIT
-    "cell",          // WLF_CURSOR_CELL
-    "crosshair",     // WLF_CURSOR_CROSSHAIR
-    "text",          // WLF_CURSOR_TEXT
-    "vertical-text", // WLF_CURSOR_VERTICAL_TEXT
-    "alias",         // WLF_CURSOR_ALIAS
-    "copy",          // WLF_CURSOR_COPY
-    "move",          // WLF_CURSOR_MOVE
-    "no-drop",       // WLF_CURSOR_NO_DROP
-    "not-allowed",   // WLF_CURSOR_NOT_ALLOWED
-    "grab",          // WLF_CURSOR_GRAB
-    "grabbing",      // WLF_CURSOR_GRABBING
-    "e-resize",      // WLF_CURSOR_E_RESIZE
-    "n-resize",      // WLF_CURSOR_N_RESIZE
-    "ne-resize",     // WLF_CURSOR_NE_RESIZE
-    "nw-resize",     // WLF_CURSOR_NW_RESIZE
-    "s-resize",      // WLF_CURSOR_S_RESIZE
-    "se-resize",     // WLF_CURSOR_SE_RESIZE
-    "sw-resize",     // WLF_CURSOR_SW_RESIZE
-    "w-resize",      // WLF_CURSOR_W_RESIZE
-    "ew-resize",     // WLF_CURSOR_EW_RESIZE
-    "ns-resize",     // WLF_CURSOR_NS_RESIZE
-    "nesw-resize",   // WLF_CURSOR_NESW_RESIZE
-    "nwse-resize",   // WLF_CURSOR_NWSE_RESIZE
-    "col-resize",    // WLF_CURSOR_COL_RESIZE
-    "row-resize",    // WLF_CURSOR_ROW_RESIZE
-    "all-scroll",    // WLF_CURSOR_ALL_SCROLL
-    "zoom-in",       // WLF_CURSOR_ZOOM_IN
-    "zoom-out",      // WLF_CURSOR_ZOOM_OUT
+    nullptr,
+    "default",
+    "context-menu",
+    "help",
+    "pointer",
+    "progress",
+    "wait",
+    "cell",
+    "crosshair",
+    "text",
+    "vertical-text",
+    "alias",
+    "copy",
+    "move",
+    "no-drop",
+    "not-allowed",
+    "grab",
+    "grabbing",
+    "e-resize",
+    "n-resize",
+    "ne-resize",
+    "nw-resize",
+    "s-resize",
+    "se-resize",
+    "sw-resize",
+    "w-resize",
+    "ew-resize",
+    "ns-resize",
+    "nesw-resize",
+    "nwse-resize",
+    "col-resize",
+    "row-resize",
+    "all-scroll",
+    "zoom-in",
+    "zoom-out",
 };
 
 static const char *
@@ -81,30 +81,92 @@ wlf_cursor_name(enum wlf_cursor cursor)
 }
 
 static void
-wlf_pointer_set_cursor(struct wlf_pointer *ptr, enum wlf_cursor cursor, uint32_t serial)
+wl_cursor_frame_done(void *data, struct wl_callback *callback, uint32_t time);
+
+static const struct wl_callback_listener wl_cursor_frame_listener = {
+    .done = wl_cursor_frame_done,
+};
+
+static void
+wlf_pointer_set_cursor_image(struct wlf_pointer *p, int i)
 {
+    struct wl_cursor_image *img = p->cursor.cursor->images[i];
+    struct wl_buffer *buf = wl_cursor_image_get_buffer(img);
+
+    wl_pointer_set_cursor(
+            p->wl_pointer,
+            p->cursor.serial,
+            p->cursor.surface,
+            (int32_t) img->hotspot_x,
+            (int32_t) img->hotspot_y);
+
+    wl_surface_attach(p->cursor.surface, buf, 0, 0);
+    wl_surface_damage(p->cursor.surface, 0, 0, INT32_MAX, INT32_MAX);
+    wl_surface_commit(p->cursor.surface);
+
+    p->cursor.last = i;
+}
+
+static void
+wl_cursor_frame_done(void *data, struct wl_callback *callback, uint32_t time)
+{
+    struct wlf_pointer *p = data;
+    assert(p->cursor.callback == callback);
+
+    wl_callback_destroy(callback);
+
+    if (p->cursor.cursor->image_count < 2) {
+        p->cursor.callback = nullptr;
+        return;
+    }
+
+    p->cursor.callback = wl_surface_frame(p->cursor.surface);
+    wl_callback_add_listener(p->cursor.callback, &wl_cursor_frame_listener, data);
+
+    int i = wl_cursor_frame(p->cursor.cursor, time);
+    if (i == p->cursor.last) {
+        wl_surface_commit(p->cursor.surface);
+        return;
+    }
+    wlf_pointer_set_cursor_image(p, i);
+}
+
+static void
+wlf_pointer_reset_cursor(struct wlf_pointer *p)
+{
+    if (p->cursor.callback) {
+        wl_callback_destroy(p->cursor.callback);
+        p->cursor.callback = nullptr;
+    }
+    p->cursor.last = -1;
+    p->cursor.cursor = nullptr;
+    p->cursor.serial = 0;
+}
+
+static void
+wlf_pointer_set_cursor(struct wlf_pointer *p, enum wlf_cursor cursor, uint32_t serial)
+{
+    wlf_pointer_reset_cursor(p);
+
     const char *name = wlf_cursor_name(cursor);
     if (name) {
-        ptr->wl_cursor = wl_cursor_theme_get_cursor(ptr->wl_cursor_theme, name);
-        if (ptr->wl_cursor) {
-            struct wl_cursor_image *image = ptr->wl_cursor->images[0];
-            struct wl_buffer *buffer = wl_cursor_image_get_buffer(image);
+        p->cursor.cursor = wl_cursor_theme_get_cursor(p->cursor.theme, name);
+        if (p->cursor.cursor) {
+            p->cursor.serial = serial;
 
-            wl_pointer_set_cursor(
-                ptr->wl_pointer,
-                serial,
-                ptr->wl_surface,
-                (int32_t) image->hotspot_x,
-                (int32_t) image->hotspot_y);
+            if (p->cursor.cursor->image_count > 1) {
+                p->cursor.callback = wl_surface_frame(p->cursor.surface);
+                wl_callback_add_listener(p->cursor.callback, &wl_cursor_frame_listener, p);
+            }
 
-            wl_surface_attach(ptr->wl_surface, buffer, 0, 0);
-            wl_surface_commit(ptr->wl_surface);
+            wlf_pointer_set_cursor_image(p, 0);
+            return;
         }
-    } else {
-        wl_pointer_set_cursor(ptr->wl_pointer, serial, nullptr, 0, 0);
-        wl_surface_attach(ptr->wl_surface, nullptr, 0, 0);
-        wl_surface_commit(ptr->wl_surface);
     }
+
+    wl_pointer_set_cursor(p->wl_pointer, serial, nullptr, 0, 0);
+    wl_surface_attach(p->cursor.surface, nullptr, 0, 0);
+    wl_surface_commit(p->cursor.surface);
 }
 
 // endregion
@@ -241,6 +303,10 @@ wlf_pointer_constraint_destroy(struct wlf_pointer_constraint *cons)
 static void
 wlf_pointer_frame(struct wlf_pointer *pointer)
 {
+    if (pointer->frame.mask & WLF_POINTER_FRAME_EVENT_LEAVE) {
+        wlf_pointer_reset_cursor(pointer);
+    }
+
     if (pointer->frame.mask & WLF_POINTER_FRAME_EVENT_ENTER) {
         wlf_pointer_set_cursor(pointer, WLF_CURSOR_DEFAULT, pointer->frame.serial);
     }
@@ -652,8 +718,9 @@ wlf_seat_init_pointer(struct wlf_seat *seat)
     seat->pointer.wl_pointer = wl_seat_get_pointer(seat->wl_seat);
     wl_pointer_add_listener(seat->pointer.wl_pointer, &wl_pointer_listener, &seat->pointer);
 
-    seat->pointer.wl_cursor_theme = wl_cursor_theme_load(theme, size, ctx->wl_shm);
-    seat->pointer.wl_surface = wl_compositor_create_surface(ctx->wl_compositor);
+    seat->pointer.cursor.theme = wl_cursor_theme_load(theme, size, ctx->wl_shm);
+    seat->pointer.cursor.surface = wl_compositor_create_surface(ctx->wl_compositor);
+    seat->pointer.cursor.last = -1;
 
     if (ctx->wp_input_timestamps_manager_v1) {
         seat->pointer.wp_timestamps_v1 = zwp_input_timestamps_manager_v1_get_pointer_timestamps(
@@ -743,8 +810,11 @@ wlf_seat_fini_pointer(struct wlf_seat *seat)
         wl_pointer_destroy(pointer->wl_pointer);
     }
 
-    wl_cursor_theme_destroy(pointer->wl_cursor_theme);
-    wl_surface_destroy(pointer->wl_surface);
+    if (pointer->cursor.callback) {
+        wl_callback_destroy(pointer->cursor.callback);
+    }
+    wl_cursor_theme_destroy(pointer->cursor.theme);
+    wl_surface_destroy(pointer->cursor.surface);
 
     memset(pointer, 0, sizeof(struct wlf_pointer));
 }

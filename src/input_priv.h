@@ -75,9 +75,14 @@ struct wlf_pointer {
     struct zwp_pointer_gesture_pinch_v1 *wp_pinch_v1;
     struct zwp_pointer_gesture_hold_v1  *wp_hold_v1;
 
-    struct wl_cursor_theme *wl_cursor_theme;
-    struct wl_cursor       *wl_cursor;
-    struct wl_surface      *wl_surface;
+    struct {
+        struct wl_cursor_theme *theme;
+        struct wl_surface *surface;
+        struct wl_cursor *cursor;
+        struct wl_callback *callback;
+        int last;
+        uint32_t serial;
+    } cursor;
 
     struct wlf_pointer_frame frame;
 
