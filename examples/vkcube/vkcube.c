@@ -1439,7 +1439,7 @@ on_seat(void *data, uint64_t id, bool added)
         if (demo->seat_id == 0) {
             demo->seat_id = id;
         }
-    } else if (demo->seat) {
+    } else if (demo->seat && demo->seat_id == id) {
         wlf_seat_release(demo->seat);
         demo->seat = nullptr;
         demo->seat_id = 0;
