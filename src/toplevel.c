@@ -424,6 +424,9 @@ wlf_toplevel_init(
         toplevel->xdg_dialog_v1 = xdg_wm_dialog_v1_get_xdg_dialog(
             context->xdg_wm_dialog_v1,
             toplevel->xdg_toplevel);
+        if (info->modal) {
+            xdg_dialog_v1_set_modal(toplevel->xdg_dialog_v1);
+        }
     }
 
     wlf_toplevel_init_state(toplevel, info);

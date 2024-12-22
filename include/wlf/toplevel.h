@@ -30,6 +30,7 @@ struct wlf_toplevel_info {
     struct wlf_toplevel      *parent;
     const char8_t            *app_id;
     const char8_t            *title;
+    bool                     modal;
     void                     *user_data;
 };
 
