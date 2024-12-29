@@ -54,11 +54,10 @@ const uint32_t WLF_XDG_DECORATION_MANAGER_V1_VERSION = 1;
 const uint32_t WLF_EXT_IDLE_NOTIFICATION_V1_VERSION = 1;
 
 uint64_t
-wlf_new_id(struct wlf_context *context)
+wlf_new_id()
 {
-    uint64_t id = ++context->id;
-    assert(id != 0);
-    return id;
+    static uint64_t id = 0;
+    return ++id;
 }
 
 uint32_t
@@ -82,7 +81,7 @@ wlf_global_create(struct wlf_context *context, uint32_t name, uint32_t version)
     }
 
     global->context = context;
-    global->id = wlf_new_id(context);
+    global->id = wlf_new_id();
     global->name = name;
     global->version = version;
 

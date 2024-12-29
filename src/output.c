@@ -328,7 +328,7 @@ wlf_output_bind(struct wlf_context *context, uint32_t name, uint32_t version)
     }
 
     output->global.context = context;
-    output->global.id = wlf_new_id(context);
+    output->global.id = wlf_new_id();
     output->global.name = name;
     output->global.version = version;
 

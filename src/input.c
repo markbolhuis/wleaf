@@ -1614,7 +1614,7 @@ wlf_seat_add(struct wlf_context *context, uint32_t name, uint32_t version)
     }
 
     seat->global.context = context;
-    seat->global.id = wlf_new_id(context);
+    seat->global.id = wlf_new_id();
     seat->global.name = name;
     seat->global.version = version;
 

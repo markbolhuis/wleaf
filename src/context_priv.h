@@ -20,8 +20,6 @@ struct wlf_context {
     struct wl_list surface_list;
     struct wl_array format_array;
 
-    uint64_t id;
-
     struct wl_compositor                             *wl_compositor;
     struct wl_subcompositor                          *wl_subcompositor;
     struct wl_shm                                    *wl_shm;
@@ -50,7 +48,7 @@ struct wlf_context {
 };
 
 uint64_t
-wlf_new_id(struct wlf_context *context);
+wlf_new_id();
 
 uint32_t
 wlf_get_version(const struct wl_interface *interface, uint32_t version, uint32_t max);
