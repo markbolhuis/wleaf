@@ -37,6 +37,7 @@ src_wlf = files(
   'output.c',
   'egl.c',
   'vulkan.c',
+  'swapchain.c',
 )
 
 src_proto = []
