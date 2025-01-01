@@ -271,7 +271,11 @@ wlf_swapchain_present(struct wlf_swapchain *sc, int32_t image)
     }
 
     wl_surface_attach(s->wl_surface, img->wl_buffer, 0, 0);
-    wl_surface_damage(s->wl_surface, 0, 0, INT32_MAX, INT32_MAX);
+    if (wl_surface_get_version(s->wl_surface) >= WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION) {
+        wl_surface_damage_buffer(s->wl_surface, 0, 0, sc->width, sc->height);
+    } else {
+        wl_surface_damage(s->wl_surface, 0, 0, INT32_MAX, INT32_MAX);
+    }
     wl_surface_commit(s->wl_surface);
 
     img->status = BUSY;
