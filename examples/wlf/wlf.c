@@ -91,8 +91,7 @@ static const struct wlf_context_listener context_listener = {
 static void
 window_draw(struct window *win, int32_t image)
 {
-    struct wlf_extent extent = win->extent;
-
+    struct wlf_extent extent = wlf_swapchain_get_extent(win->swapchain);
     int32_t stride = wlf_swapchain_get_stride(win->swapchain);
     uint8_t *pixels = wlf_swapchain_get_pixels(win->swapchain, image);
 
@@ -288,7 +287,6 @@ main()
         if (win->swapchain) {
             if (win->resized) {
                 wlf_swapchain_resize(win->swapchain, win->extent);
-                win->extent = wlf_swapchain_get_extent(win->swapchain);
                 win->resized = false;
             }
 
