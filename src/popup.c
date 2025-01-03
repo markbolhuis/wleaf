@@ -78,7 +78,7 @@ wlf_popup_configure(struct wlf_popup *p, uint32_t serial)
 
     bool rescaled = false;
     if (mask & WLF_POPUP_EVENT_SCALE) {
-        p->current.extent = p->pending.extent;
+        p->current.scale = p->pending.scale;
         resized = true;
         rescaled = true;
     }
