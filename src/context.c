@@ -28,6 +28,7 @@
 #include "context_priv.h"
 #include "input_priv.h"
 #include "output_priv.h"
+#include "log_priv.h"
 
 constexpr uint32_t WLF_WL_COMPOSITOR_VERSION = 6;
 constexpr uint32_t WLF_WL_SUBCOMPOSITOR_VERSION = 1;
@@ -83,6 +84,7 @@ wlf_global_create(struct wlf_context *context, uint32_t name, uint32_t version)
     global->name = name;
     global->version = version;
 
+    wlf_debug("Created global %w64u from %w32u\n", global->id, name);
     return global;
 }
 
@@ -196,8 +198,11 @@ wlf_global_bind(
 {
     version = wlf_get_version(wl_interface, version, max_version);
     if (version == 0) {
+        wlf_warn("Global %s version is 0. Skipping.\n", wl_interface->name);
         return nullptr;
     }
+
+    wlf_info("Binding %s with version %w32u.\n", wl_interface->name, version);
 
     struct wlf_global *global = wlf_global_create(context, name, version);
     if (!global) {
@@ -206,6 +211,7 @@ wlf_global_bind(
 
     struct wl_proxy *proxy = wl_registry_bind(context->wl_registry, name, wl_interface, version);
     if (!proxy) {
+        wlf_error("Failed to bind global %s.\n", wl_interface->name);
         wlf_global_destroy(global);
         return nullptr;
     }
@@ -243,10 +249,12 @@ wl_shm_format(void *data, struct wl_shm *, uint32_t format)
 
     uint32_t *next = wl_array_add(&context->format_array, sizeof(uint32_t));
     if (!next) {
+        wlf_error("Failed to allocate memory for wl_shm format.\n");
         return;
     }
 
     *next = format;
+    wlf_debug("Added wl_shm format 0x%08w32x.\n", format);
 }
 
 static const struct wl_shm_listener wl_shm_listener = {
@@ -547,7 +555,7 @@ wl_registry_global_remove(
     }
 
     // TODO: Remove temporary abort and implement proper context invalidation
-    fprintf(stderr, "%s: Compositor removed critical global %u.\n", __func__, name);
+    wlf_error("Compositor removed critical global %w32u.\n", name);
     abort();
 }
 
@@ -564,12 +572,15 @@ wlf_context_init(
     const struct wlf_context_info *info,
     const struct wlf_context_listener *listener)
 {
+    wlf_debug("Initializing context.\n");
+
     enum wlf_result result;
     context->listener = *listener;
     context->user_data = info->user_data;
 
     context->wl_display = wl_display_connect(info->display);
     if (!context->wl_display) {
+        wlf_error("Failed to connect to wayland socket.\n");
         result = WLF_ERROR_WAYLAND;
         goto err_display;
     }
@@ -581,12 +592,14 @@ wlf_context_init(
 
     context->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     if (!context->xkb_context) {
+        wlf_error("Failed to create xkb context.\n");
         result = WLF_ERROR_UNKNOWN;
         goto err_xkb;
     }
 
     context->wl_registry = wl_display_get_registry(context->wl_display);
     if (!context->wl_registry) {
+        wlf_error("Failed to get registry.\n");
         result = WLF_ERROR_OUT_OF_MEMORY;
         goto err_registry;
     }
@@ -598,6 +611,7 @@ wlf_context_init(
         !context->wl_subcompositor ||
         !context->wl_shm)
     {
+        wlf_error("Required globals not available.\n");
         result = WLF_ERROR_WAYLAND;
         goto err_globals;
     }
@@ -622,6 +636,7 @@ err_display:
 static void
 wlf_context_fini(struct wlf_context *context)
 {
+    wlf_debug("Uninitializing context.\n");
     wlf_destroy_seats(context);
     wlf_destroy_outputs(context);
     wlf_destroy_globals(context);
@@ -640,13 +655,17 @@ wlf_context_create(
     const struct wlf_context_listener *listener,
     struct wlf_context **_context)
 {
+    wlf_info("Creating context.\n");
+
     struct wlf_context *context = calloc(1, sizeof(*context));
     if (!context) {
+        wlf_error("Failed to allocate memory for context.\n");
         return WLF_ERROR_OUT_OF_MEMORY;
     }
 
     enum wlf_result result = wlf_context_init(context, info, listener);
     if (result < WLF_SUCCESS) {
+        wlf_error("Failed to initialize context.\n");
         free(context);
         return result;
     }
@@ -658,6 +677,7 @@ wlf_context_create(
 void
 wlf_context_destroy(struct wlf_context *context)
 {
+    wlf_debug("Destroying context.\n");
     wlf_context_fini(context);
     free(context);
 }
