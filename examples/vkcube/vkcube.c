@@ -991,7 +991,7 @@ demo_select_surface_format(struct demo *demo)
         demo->surface,
         &format_count,
         formats);
-    assert(result == VK_SUCCESS);
+    assert(result >= VK_SUCCESS);
 
     for (uint32_t i = 0; i < format_count; ++i) {
         if (formats[i].format == VK_FORMAT_R8G8B8A8_UNORM) {
