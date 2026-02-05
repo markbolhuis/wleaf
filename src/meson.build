@@ -34,6 +34,7 @@ src_wlf = files(
   'output.c',
   'egl.c',
   'vulkan.c',
+  'log.c',
 )
 
 lib_wlf = library('wleaf',
