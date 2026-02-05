@@ -2,12 +2,14 @@
 
 #include "wlf/common.h"
 
+[[maybe_unused]]
 static inline bool
 wlf_extent_equal(struct wlf_extent a, struct wlf_extent b)
 {
     return a.width == b.width && a.height == b.height;
 }
 
+[[maybe_unused]]
 static inline int32_t
 wlf_div_round(int32_t a, int32_t b)
 {
@@ -28,6 +30,7 @@ wlf_max_extent_with_aspect(struct wlf_extent e, struct wlf_extent a)
     return e;
 }
 
+[[maybe_unused]]
 static inline int64_t
 wlf_tv_to_ns(uint32_t tv_sec_hi, uint32_t tv_sec_lo, uint32_t tv_nsec)
 {
@@ -35,12 +38,14 @@ wlf_tv_to_ns(uint32_t tv_sec_hi, uint32_t tv_sec_lo, uint32_t tv_nsec)
     return (tv_sec * 1'000'000'000) + (int64_t)tv_nsec;
 }
 
+[[maybe_unused]]
 static inline int64_t
 wlf_us_to_ns(uint32_t utime_hi, uint32_t utime_lo)
 {
     return (((int64_t)utime_hi) << 32 | (int64_t)utime_lo) * 1'000;
 }
 
+[[maybe_unused]]
 static inline int64_t
 wlf_ms_to_ns(uint32_t mtime)
 {
@@ -53,6 +58,7 @@ wlf_transform_is_vertical(enum wlf_transform transform)
     return (transform & WLF_TRANSFORM_90) == WLF_TRANSFORM_90;
 }
 
+[[maybe_unused]]
 static inline bool
 wlf_transform_is_perpendicular(enum wlf_transform before, enum wlf_transform after)
 {
