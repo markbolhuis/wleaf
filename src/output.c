@@ -9,8 +9,8 @@
 #include "output_priv.h"
 #include "surface_priv.h"
 
-extern const uint32_t WLF_WL_OUTPUT_VERSION;
-static constexpr uint32_t WLF_XDG_OUTPUT_V1_DONE_DEPRECATED_SINCE_VERSION = 3;
+constexpr uint32_t WLF_WL_OUTPUT_VERSION = 4;
+constexpr uint32_t WLF_XDG_OUTPUT_V1_DONE_DEPRECATED_SINCE_VERSION = 3;
 
 int32_t
 wlf_output_get_scale(struct wlf_output *output)

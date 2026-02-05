@@ -29,7 +29,7 @@
 #include "surface_priv.h"
 #include "input_priv.h"
 
-extern const uint32_t WLF_WL_SEAT_VERSION;
+constexpr uint32_t WLF_WL_SEAT_VERSION = 9;
 
 // region Cursor
 
