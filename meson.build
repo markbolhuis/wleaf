@@ -6,7 +6,7 @@ project('wleaf', 'c',
     'warning_level=3',
     'werror=true',
   ],
-  meson_version : '>= 0.63.0',
+  meson_version : '>= 1.8.0',
 )
 
 mod_pkg = import('pkgconfig')
